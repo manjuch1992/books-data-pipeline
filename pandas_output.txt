@@ -1,0 +1,46 @@
+=== pd.read_sql: top 10 in-stock books by price ===
+               title  price_gbp  rating
+     A Quiet Kingdom      57.35       4
+ The Forgotten Night      57.05       3
+    Echoes of Harbor      56.86       1
+The Forgotten Valley      55.61       1
+      The Last Night      55.49       5
+   Whispers of Night      53.43       2
+The Hidden Mountains      50.32       3
+  The Last Mountains      50.06       1
+Letters from Horizon      49.45       3
+   The Lost the City      48.13       2
+
+=== pd.read_sql: distinct categories ===
+category_name
+     Classics
+      Mystery
+       Travel
+
+=== JOIN result via pd.read_sql (SQL JOIN) ===
+category_name                 title  rating  price_gbp
+     Classics Fragments of the City       5      35.56
+     Classics       Return to River       5      17.04
+     Classics      Shadows in River       5      19.81
+      Mystery        Into the Ocean       5      47.44
+      Mystery     The Last the City       5      10.58
+      Mystery     Whispers of Ocean       5      30.67
+       Travel         A Quiet River       5      38.53
+       Travel   Echoes of Mountains       5      21.55
+       Travel  The Forgotten Valley       5      14.52
+       Travel        The Last Night       5      55.49
+
+=== JOIN result via pd.merge (no SQL) ===
+category_name                 title  rating  price_gbp
+     Classics Fragments of the City       5      35.56
+     Classics       Return to River       5      17.04
+     Classics      Shadows in River       5      19.81
+      Mystery        Into the Ocean       5      47.44
+      Mystery     The Last the City       5      10.58
+      Mystery     Whispers of Ocean       5      30.67
+       Travel         A Quiet River       5      38.53
+       Travel   Echoes of Mountains       5      21.55
+       Travel  The Forgotten Valley       5      14.52
+       Travel        The Last Night       5      55.49
+
+SQL JOIN result matches pd.merge result: True
