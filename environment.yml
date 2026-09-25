@@ -1,0 +1,12 @@
+name: base
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pandas
+  - requests
+  - beautifulsoup4
+  - pip
+  - pip:
+      - pytest
+      - flake8
