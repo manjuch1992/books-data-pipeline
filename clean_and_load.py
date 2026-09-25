@@ -32,24 +32,45 @@ import pandas as pd
 FIXED_RATE_GBP_TO_INR = 105.50  # project-defined fixed baseline rate
 
 RATING_WORD_TO_INT = {"One": 1, "Two": 2, "Three": 3, "Four": 4, "Five": 5}
+RATING_WORD_TO_INT_LOWER = {key.lower(): value for key, value in RATING_WORD_TO_INT.items()}
 
 
 def clean_price(price_text):
+    if price_text is None or (isinstance(price_text, float) and pd.isna(price_text)):
+        return None
+
+    text = str(price_text).strip()
+    if not text:
+        return None
+
+    cleaned = re.sub(r"[^0-9.\-]", "", text.replace(",", ""))
+    if cleaned in {"", ".", "-", "-.", ".-", "--"}:
+        return None
+
     try:
-        cleaned = re.sub(r"[^\d.]", "", str(price_text))
-        return float(cleaned) if cleaned else None
+        return float(cleaned)
     except (ValueError, TypeError):
         return None
 
 
 def clean_rating(star_word):
-    return RATING_WORD_TO_INT.get(str(star_word).strip(), None)
+    if star_word is None or (isinstance(star_word, float) and pd.isna(star_word)):
+        return None
+
+    normalized = str(star_word).strip().lower()
+    return RATING_WORD_TO_INT_LOWER.get(normalized, None)
 
 
 def clean_availability(avail_text):
-    if not isinstance(avail_text, str):
+    if avail_text is None or (isinstance(avail_text, float) and pd.isna(avail_text)):
         return None
-    text = avail_text.lower()
+
+    if not isinstance(avail_text, str):
+        text = str(avail_text)
+    else:
+        text = avail_text
+
+    text = text.strip().lower()
     if "in stock" in text:
         return True
     if "out of stock" in text:
@@ -59,6 +80,11 @@ def clean_availability(avail_text):
 
 def load_and_clean(csv_path="raw_books.csv") -> pd.DataFrame:
     df = pd.read_csv(csv_path)
+
+    required_columns = {"title", "price", "star_rating", "availability", "category"}
+    missing_columns = sorted(required_columns - set(df.columns))
+    if missing_columns:
+        raise ValueError(f"CSV is missing required columns: {missing_columns}")
 
     df["price_gbp"] = df["price"].apply(clean_price)
     df["rating"] = df["star_rating"].apply(clean_rating)
@@ -94,50 +120,53 @@ def load_and_clean(csv_path="raw_books.csv") -> pd.DataFrame:
 
 
 def build_database(df: pd.DataFrame, db_path="books.db"):
+    df = df.copy()
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
-    cur.executescript(
-        """
-        DROP TABLE IF EXISTS books;
-        DROP TABLE IF EXISTS categories;
+    try:
+        cur.executescript(
+            """
+            DROP TABLE IF EXISTS books;
+            DROP TABLE IF EXISTS categories;
 
-        CREATE TABLE categories (
-            category_id   INTEGER PRIMARY KEY AUTOINCREMENT,
-            category_name TEXT UNIQUE NOT NULL
-        );
+            CREATE TABLE categories (
+                category_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+                category_name TEXT UNIQUE NOT NULL
+            );
 
-        CREATE TABLE books (
-            book_id     INTEGER PRIMARY KEY AUTOINCREMENT,
-            title       TEXT NOT NULL,
-            price_gbp   REAL NOT NULL,
-            price_inr   REAL NOT NULL,
-            rating      INTEGER NOT NULL,
-            in_stock    INTEGER NOT NULL,
-            category_id INTEGER NOT NULL REFERENCES categories(category_id)
-        );
-        """
-    )
+            CREATE TABLE books (
+                book_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+                title       TEXT NOT NULL,
+                price_gbp   REAL NOT NULL,
+                price_inr   REAL NOT NULL,
+                rating      INTEGER NOT NULL,
+                in_stock    INTEGER NOT NULL,
+                category_id INTEGER NOT NULL REFERENCES categories(category_id)
+            );
+            """
+        )
 
-    category_ids = {}
-    for name in sorted(df["category"].unique()):
-        cur.execute("INSERT INTO categories (category_name) VALUES (?)", (name,))
-        category_ids[name] = cur.lastrowid
+        category_ids = {}
+        for name in sorted(df["category"].dropna().unique()):
+            cur.execute("INSERT INTO categories (category_name) VALUES (?)", (str(name),))
+            category_ids[name] = cur.lastrowid
 
-    rows = [
-        (r.title, r.price_gbp, r.price_inr, r.rating, r.in_stock, category_ids[r.category])
-        for r in df.itertuples(index=False)
-    ]
-    cur.executemany(
-        """
-        INSERT INTO books (title, price_gbp, price_inr, rating, in_stock, category_id)
-        VALUES (?, ?, ?, ?, ?, ?)
-        """,
-        rows,
-    )
+        rows = [
+            (r.title, r.price_gbp, r.price_inr, r.rating, r.in_stock, category_ids[r.category])
+            for r in df.itertuples(index=False)
+        ]
+        cur.executemany(
+            """
+            INSERT INTO books (title, price_gbp, price_inr, rating, in_stock, category_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            rows,
+        )
 
-    conn.commit()
-    conn.close()
-    print(f"[db] Loaded {len(df)} books across {len(category_ids)} categories into {db_path}")
+        conn.commit()
+        print(f"[db] Loaded {len(df)} books across {len(category_ids)} categories into {db_path}")
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":
