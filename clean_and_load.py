@@ -1,33 +1,34 @@
-"""
-clean_and_load.py
-------------------
-Reads raw_books.csv (produced by scraper.py), cleans/types each field,
-converts price to INR using the project's fixed baseline rate, and loads
-the result into a normalized SQLite database (books.db) with a two-table
-categories / books schema sharing a PK/FK relationship.
 
-Fixed conversion rate (see README): 1 GBP = 105.50 INR.
-This is an artificial, project-defined constant for this assignment —
-not a live or historical market rate — so it is hardcoded below and
-requires no API call, no lookup, and no date reference.
-
-Row-level error handling (see README for justification):
-  - price_gbp fails to parse  -> median-impute (numeric, central to the
-    analysis; dropping would lose an otherwise-good row over one field).
-  - rating fails to parse     -> median-impute, rounded to nearest int.
-  - availability text doesn't match either known pattern -> row dropped
-    (not a meaningfully numeric field, so imputation doesn't apply, and
-    on this site such text is effectively always well-formed, so this
-    path is a safety net rather than an expected occurrence).
-
-Run:
-    python clean_and_load.py
-"""
 
 import re
 import sqlite3
+import tempfile
+from pathlib import Path
 
 import pandas as pd
+
+
+def choose_output_dir():
+    candidates = [
+        Path(r"D:\masai_capstone"),
+        Path(r"E:\masai_capstone"),
+        Path(tempfile.gettempdir()) / "masai_capstone",
+        Path(__file__).resolve().parent,
+    ]
+    for path in candidates:
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+            test_file = path / ".write_test"
+            with open(test_file, "w", encoding="utf-8") as handle:
+                handle.write("ok")
+            test_file.unlink(missing_ok=True)
+            return path
+        except OSError:
+            continue
+    return Path(__file__).resolve().parent
+
+
+OUTPUT_DIR = choose_output_dir()
 
 FIXED_RATE_GBP_TO_INR = 105.50  # project-defined fixed baseline rate
 
@@ -79,6 +80,9 @@ def clean_availability(avail_text):
 
 
 def load_and_clean(csv_path="raw_books.csv") -> pd.DataFrame:
+    csv_path = Path(csv_path)
+    if not csv_path.is_absolute():
+        csv_path = OUTPUT_DIR / csv_path.name
     df = pd.read_csv(csv_path)
 
     required_columns = {"title", "price", "star_rating", "availability", "category"}
@@ -121,6 +125,9 @@ def load_and_clean(csv_path="raw_books.csv") -> pd.DataFrame:
 
 def build_database(df: pd.DataFrame, db_path="books.db"):
     df = df.copy()
+    db_path = Path(db_path)
+    if not db_path.is_absolute():
+        db_path = OUTPUT_DIR / db_path.name
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
     try:
@@ -170,5 +177,7 @@ def build_database(df: pd.DataFrame, db_path="books.db"):
 
 
 if __name__ == "__main__":
-    cleaned = load_and_clean()
-    build_database(cleaned)
+    raw_csv = OUTPUT_DIR / "raw_books.csv"
+    db_path = OUTPUT_DIR / "books.db"
+    cleaned = load_and_clean(raw_csv)
+    build_database(cleaned, db_path)

@@ -1,21 +1,24 @@
 # Zepto Support Assistant
 
-This module implements a compact Retrieval-Augmented Generation (RAG) assistant for Zepto policy questions. It loads the policy corpus, creates local embeddings, stores vectors in a Chroma-compatible interface, and exposes the pipeline via a local FastAPI service. The baseline runs offline with a deterministic lightweight embedding fallback, so it does not require native ChromaDB or PyTorch builds.
+This module implements a Retrieval-Augmented Generation (RAG) assistant for Zepto policy questions. It embeds the policy corpus locally with `all-MiniLM-L6-v2`, stores vectors in a persistent ChromaDB collection, and exposes the graph through FastAPI. With `MOCK_LLM` unset or set to `1`, answer generation and intent classification are deterministic and make no LLM-provider calls.
 
 ## Installed app and usage
 
 The app is built for local execution with the required mock path enabled by default.
+
+On first startup, `sentence-transformers` downloads the `all-MiniLM-L6-v2` weights; subsequent embedding and retrieval run locally. No LLM API key is used in the default mock mode.
 
 1. Install dependencies:
   ```powershell
   cd support_assistant
   python -m pip install -r requirements.txt
   ```
-2. Run the app locally:
+2. Run the app locally from the repository root:
   ```powershell
   cd ..
-   python -m uvicorn support_assistant.main:app --host 127.0.0.1 --port 8000
-   ```
+  $env:MOCK_LLM = "1"
+  python -m uvicorn support_assistant.main:app --host 127.0.0.1 --port 8000
+  ```
 3. Send a request:
    ```bash
    curl -X POST http://127.0.0.1:8000/ask \
@@ -38,7 +41,7 @@ curl -X POST http://127.0.0.1:8000/ask \
 
 Raw JSON response:
 ```json
-{"answer":"Based on the retrieved context: Zepto delivers grocery and household essentials to serviceable pin codes within 10 to 30 minutes of order confirmation, depending on the customer's delivery zone and current order volume. Standard delivery is free on orders over INR 149; orders below this threshold incur a flat INR 25 delivery fee. Priority delivery, which reserves the next available rider slot, is available at checkout for an additional INR 15. Zepto does not currently deliver to addresses outside its listed serviceable pin codes.","sources":["doc_01"],"confidence":1.0}
+{"answer":"Based on the retrieved context: Zepto delivers grocery and household essentials to serviceable pin codes within 10 to 30 minutes of order confirmation, depending on the customer's delivery zone and current order volume. Standard del","sources":["doc_01","doc_05","doc_07"],"confidence":1.0}
 ```
 
 ### Example 2 — non-policy question route (direct answer)
@@ -59,12 +62,12 @@ Raw JSON response:
 
 This pipeline follows the standard RAG flow: ingestion → embedding → retrieval → generation.
 
-- Ingestion: the corpus is stored as eight plain-text policy files in [docs](docs). These documents are loaded by the ingestion logic in [support_assistant/main.py](support_assistant/main.py), which reads each file as a document and assigns a chunk ID such as `doc_01` through `doc_08`.
-- Embedding: the app uses `SentenceTransformer("all-MiniLM-L6-v2")` when that optional package is available; otherwise the built-in deterministic local embedding model creates 384-dimensional vectors without heavyweight native dependencies.
-- Retrieval: the LangGraph node `retrieve_and_answer` performs vector search through the Chroma-compatible collection interface using cosine similarity, taking the top three chunks for a policy-style query. The retrieval is always real, even when `MOCK_LLM` is defaulted to mock mode; only the final answer-generation step switches behavior.
+- Ingestion: the corpus is stored as eight plain-text policy files in [docs](docs). These documents are loaded by the ingestion logic in [main.py](main.py), which reads each file as a document and assigns a chunk ID such as `doc_01` through `doc_08`.
+- Embedding: `build_embedding_model` loads `SentenceTransformer("all-MiniLM-L6-v2")` and embeds each document as one chunk. The vectors and source IDs are stored in the persistent `zepto_policy_corpus` ChromaDB collection.
+- Retrieval: the LangGraph node `retrieve_and_answer` embeds the incoming query and retrieves the top three chunks from `zepto_policy_corpus` using cosine similarity. Retrieval always runs in both modes; only classification and answer generation switch behavior.
 - Generation: the final answer is composed by the `retrieve_and_answer` node in mock mode using the requested template `Based on the retrieved context: ...`, or by the `direct_answer` node for non-policy questions using the fixed canned response. In the optional `MOCK_LLM=0` path, a real LLM is called using the structured prompt template and grounded only on retrieved chunks.
 
-The `MOCK_LLM` toggle affects generation nodes, not the routing logic or retrieval itself. With `MOCK_LLM` unset or set to `1`, the app runs the fully deterministic offline mock path. When `MOCK_LLM=0`, the code attempts the real LLM extension instead, while still preserving the same routing and retrieval flow.
+The `MOCK_LLM` toggle affects intent classification and answer generation, not embedding or retrieval. With `MOCK_LLM` unset or set to `1`, the keyword heuristic routes requests and the graph returns deterministic mock responses without an LLM-provider call. When `MOCK_LLM=0`, the classifier and answer nodes call the configured Groq endpoint; retrieval remains local and unchanged.
 
 ### Text diagram
 
@@ -78,7 +81,7 @@ docs/doc_01.txt ... docs/doc_08.txt
   local embedding model
         │
         ▼
- Chroma-compatible collection: zepto_policy_corpus
+ ChromaDB collection: zepto_policy_corpus
         │
         ▼
    classify_intent node

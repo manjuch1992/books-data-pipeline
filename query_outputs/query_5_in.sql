@@ -1,0 +1,1 @@
+SELECT title, rating, in_stock FROM books WHERE rating IN (4, 5) ORDER BY rating DESC;

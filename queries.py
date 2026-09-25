@@ -1,17 +1,29 @@
-"""
-queries.py
-----------
-Runs >= 5 SQL queries against books.db, collectively covering:
-SELECT/WHERE, ORDER BY, LIMIT, DISTINCT, IN/BETWEEN, and a JOIN.
-
-Prints each query's SQL and its output (also usable programmatically via
-run_queries(), which returns {name: (columns, rows)}).
-
-Run:
-    python queries.py
-"""
-
 import sqlite3
+import tempfile
+from pathlib import Path
+
+
+def choose_output_dir():
+    candidates = [
+        Path(r"D:\masai_capstone"),
+        Path(r"E:\masai_capstone"),
+        Path(tempfile.gettempdir()) / "masai_capstone",
+        Path(__file__).resolve().parent,
+    ]
+    for path in candidates:
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+            test_file = path / ".write_test"
+            with open(test_file, "w", encoding="utf-8") as handle:
+                handle.write("ok")
+            test_file.unlink(missing_ok=True)
+            return path
+        except OSError:
+            continue
+    return Path(__file__).resolve().parent
+
+
+OUTPUT_DIR = choose_output_dir()
 
 QUERIES = {
     "q1_select_where_orderby_limit": """
@@ -52,6 +64,9 @@ QUERIES = {
 
 
 def run_queries(db_path="books.db"):
+    db_path = Path(db_path)
+    if not db_path.is_absolute():
+        db_path = OUTPUT_DIR / db_path.name
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
     results = {}

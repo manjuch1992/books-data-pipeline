@@ -57,7 +57,7 @@ except ModuleNotFoundError:
             self.path = path
             self._collections: dict[str, _FallbackCollection] = {}
 
-        def get_or_create_collection(self, name: str) -> _FallbackCollection:
+        def get_or_create_collection(self, name: str, metadata: dict[str, Any] | None = None) -> _FallbackCollection:
             if name not in self._collections:
                 self._collections[name] = _FallbackCollection()
             return self._collections[name]
@@ -80,6 +80,7 @@ except ModuleNotFoundError:
 
 BASE_DIR = Path(__file__).resolve().parent
 DOCS_DIR = BASE_DIR / "docs"
+CHROMA_DB_DIR = Path(os.getenv("CHROMA_DB_DIR", str(BASE_DIR / ".chroma_db")))
 COLLECTION_NAME = "zepto_policy_corpus"
 MODEL_NAME = "all-MiniLM-L6-v2"
 
@@ -89,9 +90,6 @@ POLICY_KEYWORDS = [
     "return",
     "refund",
     "membership",
-    "pass+",
-    "subscription",
-    "monthly",
     "tracking",
     "cancel",
     "gift card",
@@ -181,6 +179,10 @@ def llm_answer_from_context(query: str, retrieved_chunks: list[str], retrieved_i
         "Assistant response:\n"
     )
 
+    return call_llm_for_response(prompt)
+
+
+def call_llm_for_response(prompt: str) -> AskResponse:
     last_error = None
     for _ in range(3):
         try:
@@ -225,8 +227,11 @@ def build_embedding_model() -> Any:
 
 
 def build_vectorstore(embedding_model: Any) -> tuple[Any, Any]:
-    client = chromadb.PersistentClient(path=str(BASE_DIR / ".chroma_db"))
-    collection = client.get_or_create_collection(name=COLLECTION_NAME)
+    client = chromadb.PersistentClient(path=str(CHROMA_DB_DIR))
+    collection = client.get_or_create_collection(
+        name=COLLECTION_NAME,
+        metadata={"hnsw:space": "cosine"},
+    )
 
     if collection.count() == 0:
         corpus = load_corpus()
@@ -259,7 +264,7 @@ def retrieve_top_chunks(query: str, top_k: int = 3) -> tuple[list[str], list[str
     result = CHROMA_COLLECTION.query(
         query_embeddings=[query_vector],
         n_results=top_k,
-        include=["documents", "ids"],
+        include=["documents"],
     )
     documents = result.get("documents", [[]])[0]
     ids = result.get("ids", [[]])[0]
@@ -267,7 +272,21 @@ def retrieve_top_chunks(query: str, top_k: int = 3) -> tuple[list[str], list[str
 
 
 def classify_intent(state: AgentState) -> AgentState:
-    state["intent"] = classify_query(state["query"])
+    if MOCK_LLM:
+        state["intent"] = classify_query(state["query"])
+        return state
+
+    prompt = (
+        "Classify the user query as exactly one label: policy_question or general_question. "
+        "Return only the label. A question about Zepto delivery, returns, refunds, membership, "
+        "tracking, cancellation, gift cards, or support hours is policy_question.\n"
+        f"User query: {state['query']}"
+    )
+    raw = call_real_llm(prompt).strip().lower()
+    match = re.search(r"\b(policy_question|general_question)\b", raw)
+    if match is None:
+        raise ValueError("LLM intent classification returned an invalid label.")
+    state["intent"] = match.group(1)
     return state
 
 
@@ -312,8 +331,7 @@ def direct_answer(state: AgentState) -> AgentState:
         "Context: The answer is not restricted to the Zepto policy corpus; answer directly but keep it brief.\n"
         "Assistant response:\n"
     )
-    raw = call_real_llm(prompt)
-    validated = parse_json_response(raw)
+    validated = call_llm_for_response(prompt)
     state["answer"] = validated.answer
     state["sources"] = validated.sources
     state["confidence"] = validated.confidence

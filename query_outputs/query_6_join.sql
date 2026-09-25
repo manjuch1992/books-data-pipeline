@@ -1,0 +1,1 @@
+SELECT b.book_id, b.title, b.price_gbp, b.price_inr, b.rating, b.in_stock, c.category_name FROM books b JOIN categories c ON b.category_id = c.category_id ORDER BY c.category_name, b.rating DESC, b.title;

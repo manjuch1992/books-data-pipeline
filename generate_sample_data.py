@@ -16,6 +16,29 @@ Run:
 
 import csv
 import random
+import tempfile
+from pathlib import Path
+
+
+def choose_output_dir():
+    candidates = [
+        Path(r"D:\masai_capstone"),
+        Path(r"E:\masai_capstone"),
+        Path(tempfile.gettempdir()) / "masai_capstone",
+        Path(__file__).resolve().parent,
+    ]
+    for path in candidates:
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+            test_file = path / ".write_test"
+            with open(test_file, "w", encoding="utf-8") as handle:
+                handle.write("ok")
+            test_file.unlink(missing_ok=True)
+            return path
+        except OSError:
+            continue
+    return Path(__file__).resolve().parent
+
 
 random.seed(7)
 
@@ -82,9 +105,12 @@ rows.append({
 
 random.shuffle(rows)
 
-with open("raw_books.csv", "w", newline="", encoding="utf-8") as f:
+OUTPUT_DIR = choose_output_dir()
+OUTPUT_PATH = OUTPUT_DIR / "raw_books.csv"
+
+with open(OUTPUT_PATH, "w", newline="", encoding="utf-8") as f:
     writer = csv.DictWriter(f, fieldnames=["title", "price", "star_rating", "availability", "category"])
     writer.writeheader()
     writer.writerows(rows)
 
-print(f"Wrote {len(rows)} sample rows (incl. 3 deliberately messy) to raw_books.csv")
+print(f"Wrote {len(rows)} sample rows (incl. 3 deliberately messy) to {OUTPUT_PATH}")

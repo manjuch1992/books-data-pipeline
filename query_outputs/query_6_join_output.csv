@@ -1,0 +1,69 @@
+book_id,title,price_gbp,price_inr,rating,in_stock,category_name
+26,Fragments of the City,35.56,3751.5800000000004,5,1,Classics
+13,Return to River,17.04,1797.7199999999998,5,1,Classics
+1,Shadows in River,19.81,2089.955,5,1,Classics
+54,Fragments of Library,29.0,3059.5,4,1,Classics
+5,Into the Winter,30.83,3252.5649999999996,3,1,Classics
+29,Letters from Ocean,10.09,1064.495,3,1,Classics
+20,Letters from River,31.47,3320.085,3,1,Classics
+19,The Forgotten Night,57.05,6018.775,3,1,Classics
+36,A Journey Library,17.63,1859.965,2,0,Classics
+65,Beneath the Mountains,20.58,2171.1899999999996,2,1,Classics
+11,Echoes of Village,44.15,4657.825,2,1,Classics
+21,Fragments of Garden,32.67,3446.6850000000004,2,1,Classics
+43,Shadows in Ocean,29.23,3083.765,2,1,Classics
+57,The Forgotten Garden,34.88,3679.84,2,1,Classics
+41,The Last the City,39.43,4159.865,2,1,Classics
+15,Whispers of Night,53.43,5636.865,2,1,Classics
+40,Return to Coast,27.07,2855.885,1,0,Classics
+45,Return to Valley,16.29,1718.5949999999998,1,1,Classics
+42,The Last Mountains,50.06,5281.33,1,1,Classics
+49,The Silent Village,35.35,3729.425,1,1,Classics
+24,Into the Ocean,47.44,5004.92,5,1,Mystery
+6,The Last the City,10.58,1116.19,5,1,Mystery
+35,Whispers of Ocean,30.67,3235.6850000000004,5,1,Mystery
+47,A Quiet Kingdom,57.35,6050.425,4,1,Mystery
+8,A Quiet River,45.54,4804.47,4,1,Mystery
+46,Beneath the Coast,15.9,1677.45,4,1,Mystery
+12,Echoes of Kingdom,28.92,3051.0600000000004,4,1,Mystery
+52,Shadows in Kingdom,28.77,3035.235,4,1,Mystery
+59,The Lost Garden,10.2,1076.1,4,1,Mystery
+37,Echoes of Winter,40.45,4267.475,3,1,Mystery
+48,Letters from Horizon,49.45,5216.975,3,1,Mystery
+63,Whispers of Coast,29.28,3089.04,3,1,Mystery
+67,A Book With Bad Rating,19.99,2108.9449999999997,2,1,Mystery
+16,A Quiet Winter,34.78,3669.29,2,1,Mystery
+10,Beneath the Night,11.22,1183.71,2,1,Mystery
+44,Beneath the Night,37.18,3922.49,2,1,Mystery
+56,Echoes of Harbor,19.15,2020.3249999999998,2,1,Mystery
+2,Shadows in Winter,13.98,1474.89,2,1,Mystery
+38,The Hidden Coast,24.97,2634.335,2,1,Mystery
+17,The Silent the City,46.88,4945.84,2,1,Mystery
+27,Echoes of Woods,42.1,4441.55,1,1,Mystery
+53,The Forgotten Valley,55.61,5866.855,1,1,Mystery
+64,The Hidden River,18.07,1906.385,1,1,Mystery
+18,The Silent Night,17.26,1820.93,1,1,Mystery
+32,Whispers of Mountains,26.32,2776.76,1,1,Mystery
+28,A Quiet River,38.53,4064.915,5,1,Travel
+50,Echoes of Mountains,21.55,2273.525,5,1,Travel
+62,The Forgotten Valley,14.52,1531.86,5,1,Travel
+31,The Last Night,55.49,5854.195000000001,5,1,Travel
+3,Beneath the Coast,38.11,4020.605,4,1,Travel
+34,Shadows in Coast,42.66,4500.629999999999,4,1,Travel
+25,A Book With Bad Price,30.455,3213.0024999999996,3,1,Travel
+22,A Quiet Horizon,13.12,1384.1599999999999,3,1,Travel
+14,Letters from Garden,35.21,3714.655,3,1,Travel
+39,Letters from Night,40.67,4290.685,3,1,Travel
+61,Return to Kingdom,17.92,1890.5600000000002,3,1,Travel
+60,Return to Night,47.88,5051.34,3,1,Travel
+55,The Hidden Mountains,50.32,5308.76,3,1,Travel
+51,A Journey Night,24.81,2617.455,2,1,Travel
+9,The Forgotten Winter,23.9,2521.45,2,1,Travel
+68,The Lost the City,48.13,5077.715,2,1,Travel
+30,The Silent Ocean,37.14,3918.27,2,1,Travel
+33,Beneath the Winter,28.95,3054.225,1,1,Travel
+7,Echoes of Harbor,56.86,5998.73,1,1,Travel
+66,Into the Coast,30.24,3190.3199999999997,1,1,Travel
+4,Into the Valley,20.31,2142.705,1,1,Travel
+23,Return to Library,13.01,1372.555,1,1,Travel
+58,The Hidden Garden,39.23,4138.764999999999,1,1,Travel

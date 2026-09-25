@@ -11,14 +11,41 @@ Run:
 """
 
 import sqlite3
+import tempfile
+from pathlib import Path
 
 import pandas as pd
 
 
+def choose_output_dir():
+    candidates = [
+        Path(r"D:\masai_capstone"),
+        Path(r"E:\masai_capstone"),
+        Path(tempfile.gettempdir()) / "masai_capstone",
+        Path(__file__).resolve().parent,
+    ]
+    for path in candidates:
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+            test_file = path / ".write_test"
+            with open(test_file, "w", encoding="utf-8") as handle:
+                handle.write("ok")
+            test_file.unlink(missing_ok=True)
+            return path
+        except OSError:
+            continue
+    return Path(__file__).resolve().parent
+
+
+OUTPUT_DIR = choose_output_dir()
+
+
 def main(db_path="books.db"):
+    db_path = Path(db_path)
+    if not db_path.is_absolute():
+        db_path = OUTPUT_DIR / db_path.name
     conn = sqlite3.connect(db_path)
 
-    # --- pd.read_sql for two of the required queries ---
     df_instock_top = pd.read_sql(
         """
         SELECT title, price_gbp, rating
@@ -39,7 +66,6 @@ def main(db_path="books.db"):
     print("\n=== pd.read_sql: distinct categories ===")
     print(df_distinct_cats.to_string(index=False))
 
-    # --- SQL JOIN version (top-rated book(s) per category) ---
     sql_join_query = """
         SELECT c.category_name, b.title, b.rating, b.price_gbp
         FROM books b
@@ -53,7 +79,6 @@ def main(db_path="books.db"):
         ["category_name", "title"]
     ).reset_index(drop=True)
 
-    # --- Equivalent result using pd.merge on in-memory DataFrames (no SQL join) ---
     books_df = pd.read_sql("SELECT * FROM books;", conn)
     categories_df = pd.read_sql("SELECT * FROM categories;", conn)
 
@@ -77,9 +102,9 @@ def main(db_path="books.db"):
     assert are_equal, "pd.read_sql and pd.merge results diverged!"
 
     conn.close()
-    
-    # --- Save output to file ---
-    with open("pandas_output.txt", "w") as f:
+
+    output_path = OUTPUT_DIR / "pandas_output.txt"
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write("=== pd.read_sql: top 10 in-stock books by price ===\n")
         f.write(df_instock_top.to_string(index=False) + "\n\n")
         f.write("=== pd.read_sql: distinct categories ===\n")
@@ -89,8 +114,8 @@ def main(db_path="books.db"):
         f.write("=== JOIN result via pd.merge (no SQL) ===\n")
         f.write(df_pandas_join.to_string(index=False) + "\n\n")
         f.write(f"SQL JOIN result matches pd.merge result: {are_equal}\n")
-    
-    print("\n✓ Output saved to pandas_output.txt")
+
+    print(f"\n✓ Output saved to {output_path}")
 
 
 if __name__ == "__main__":

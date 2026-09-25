@@ -1,0 +1,1 @@
+SELECT title, price_gbp, rating FROM books WHERE rating >= 4;
